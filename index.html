@@ -52,7 +52,7 @@
 
         // 2. โหลด Font ภาษาไทย (จำเป็นมากเพื่อให้พิมพ์ไทยได้)
         // แนะนำให้ใช้ไฟล์ .ttf ที่ฝากไว้บนเว็บหรือใน Repo
-        const fontUrl = 'https://fonts.gstatic.com/s/itimm/v11/0nEZSOG85hPF9nfaP7w.ttf'; // ตัวอย่าง Font Itim
+        const fontUrl = 'https://raw.githubusercontent.com/google/fonts/master/ofl/sarabun/Sarabun-Regular.ttf'; // ตัวอย่าง Font Itim
         const fontBytes = await fetch(fontUrl).then(res => res.arrayBuffer());
 
         // 3. เริ่มจัดการ PDF
@@ -97,5 +97,6 @@
 
 </body>
 </html>
+
 
 
