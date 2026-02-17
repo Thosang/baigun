@@ -2,96 +2,134 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <title>ระบบเติมข้อมูลลงฟอร์ม PDF</title>
+    <title>ระบบพิมพ์คำร้อง PDF</title>
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <script src="https://unpkg.com/@pdf-lib/fontkit@0.0.4/dist/fontkit.umd.min.js"></script>
     
     <style>
-        body { font-family: 'Tahoma', sans-serif; padding: 30px; line-height: 1.6; background-color: #f4f7f6; }
-        .container { max-width: 500px; margin: auto; border: none; padding: 30px; border-radius: 15px; background: white; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        h3 { color: #333; text-align: center; }
-        label { font-size: 14px; color: #666; }
-        input { width: 100%; padding: 12px; margin: 8px 0 20px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        button { background-color: #2ecc71; color: white; border: none; padding: 12px; cursor: pointer; width: 100%; font-size: 16px; border-radius: 8px; font-weight: bold; transition: 0.3s; }
-        button:hover { background-color: #27ae60; }
+        body { font-family: 'Tahoma', sans-serif; padding: 20px; background-color: #f0f2f5; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        h3 { text-align: center; color: #2c3e50; margin-bottom: 25px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-size: 14px; color: #555; margin-bottom: 5px; font-weight: bold; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 15px; }
+        button { background-color: #007bff; color: white; border: none; padding: 12px; cursor: pointer; width: 100%; font-size: 16px; border-radius: 6px; font-weight: bold; margin-top: 10px; }
+        button:hover { background-color: #0056b3; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h3>บันทึกข้อมูลลงแบบฟอร์ม</h3>
-    <label>ชื่อ-นามสกุล:</label>
-    <input type="text" id="userName" placeholder="เช่น นายสมชาย ใจดี">
+    <h3>แบบฟอร์มบันทึกข้อมูล PDF</h3>
     
-    <label>รหัสพนักงาน/นักศึกษา:</label>
-    <input type="text" id="userId" placeholder="เช่น 64001234">
-    
+    <div class="form-group">
+        <label>เลือกวันที่:</label>
+        <input type="date" id="dateInput">
+    </div>
+
+    <div class="form-group">
+        <label>ชื่อผู้ขอ:</label>
+        <input type="text" id="requesterName" placeholder="ระบุชื่อ-นามสกุล">
+    </div>
+
+    <div class="form-group">
+        <label>รหัสประจำตัว:</label>
+        <input type="text" id="userId" placeholder="ระบุรหัสประจำตัว">
+    </div>
+
+    <div class="form-group">
+        <label>สาขาวิชา / หน่วยงาน:</label>
+        <select id="department">
+            <option value="">-- เลือกสาขาวิชา --</option>
+            <option>สาขาวิชาคณิตศาสตร์</option>
+            <option>สาขาวิชาวิทยาศาสตร์ชีวภาพ</option>
+            <option>สาขาวิชาเคมีประยุกต์</option>
+            <option>สาขาวิชาฟิสิกส์</option>
+            <option>สาขาวิชาเกษตรศาสตร์</option>
+            <option>สาขาวิชาสัตวศาสตร์</option>
+            <option>สาขาวิชาวิทยาการคอมพิวเตอร์</option>
+            <option>สาขาวิชาเทคโนโลยีสารสนเทศ</option>
+            <option>สาขาวิชาวิทยาศาสตร์และเทคโนโลยีสิ่งแวดล้อม</option>
+            <option>สาขาวิชาอาหารและโภชนาการ</option>
+            <option>สาขาวิชาวิทยาศาสตร์การกีฬาและการออกกำลังกาย</option>
+            <option>สาขาวิชาเทคโนโลยีอาหาร</option>
+            <option>สาขาวิชาสาธารณสุขศาสตร์</option>
+        </select>
+    </div>
+
     <button onclick="fillForm()">สร้างและดาวน์โหลด PDF</button>
 </div>
 
 <script>
     const { PDFDocument, rgb } = PDFLib;
 
-  async function fillForm() {
-    try {
-        // 1. โหลดไฟล์ PDF ต้นฉบับ
-        const url = './template.pdf'; 
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('ไม่พบไฟล์ template.pdf');
-        const existingPdfBytes = await response.arrayBuffer();
-
-        // 2. แก้ไขตรงนี้: โหลดฟอนต์จากใน Repository ของเราเอง
-        const fontUrl = './THSarabunNew.ttf'; // <--- เปลี่ยนมาใช้ไฟล์ในเครื่อง
-        const fontResponse = await fetch(fontUrl);
-        if (!fontResponse.ok) throw new Error('ไม่พบไฟล์ THSarabunNew.ttf ใน GitHub ของคุณ');
-        const fontBytes = await fontResponse.arrayBuffer();
-
-        // 3. เริ่มจัดการ PDF
-        const pdfDoc = await PDFDocument.load(existingPdfBytes);
-        pdfDoc.registerFontkit(fontkit);
-        const thaiFont = await pdfDoc.embedFont(fontBytes);
-
-        const pages = pdfDoc.getPages();
-        const firstPage = pages[0];
-
-        // 4. ดึงค่าจากหน้าเว็บ
-        const name = document.getElementById('userName').value || " ";
-        const id = document.getElementById('userId').value || " ";
-
-        // 5. พิมพ์ข้อมูลลงใน PDF
-        firstPage.drawText(name, {
-            x: 180, 
-            y: 655,
-            size: 16,
-            font: thaiFont,
-            color: rgb(0, 0, 0),
-        });
-
-        firstPage.drawText(id, {
-            x: 180,
-            y: 610,
-            size: 16,
-            font: thaiFont,
-            color: rgb(0, 0, 0),
-        });
-
-        // 6. บันทึกและดาวน์โหลด
-        const pdfBytes = await pdfDoc.save();
-        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = `document_${id}.pdf`;
-        link.click();
-
-    } catch (error) {
-        console.error(error);
-        alert('เกิดข้อผิดพลาด: ' + error.message + '\nกรุณาเช็คว่าอัปโหลดไฟล์ฟอนต์ชื่อ Sarabun-Light.ttf หรือยัง?');
+    // ฟังก์ชันแปลงวันที่เป็นรูปแบบไทยเต็ม
+    function formatThaiDate(dateString) {
+        if (!dateString) return "";
+        const months = [
+            "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+            "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+        ];
+        const date = new Date(dateString);
+        const day = date.getDate();
+        const month = months[date.getMonth()];
+        const year = date.getFullYear() + 543; // แปลงเป็น พ.ศ.
+        return `${day} ${month} ${year}`;
     }
-}
+
+    async function fillForm() {
+        try {
+            // 1. โหลดไฟล์ PDF และ Font (ตรวจสอบชื่อไฟล์ให้ตรงกับใน GitHub)
+            const pdfUrl = './template.pdf';
+            const fontUrl = './Sarabun-Light.ttf';
+
+            const [pdfTemplateBytes, fontBytes] = await Promise.all([
+                fetch(pdfUrl).then(res => { if(!res.ok) throw new Error('ไม่พบ template.pdf'); return res.arrayBuffer(); }),
+                fetch(fontUrl).then(res => { if(!res.ok) throw new Error('ไม่พบ Sarabun-Light.ttf'); return res.arrayBuffer(); })
+            ]);
+
+            // 2. เตรียมเอกสาร
+            const pdfDoc = await PDFDocument.load(pdfTemplateBytes);
+            pdfDoc.registerFontkit(fontkit);
+            const thaiFont = await pdfDoc.embedFont(fontBytes);
+            const firstPage = pdfDoc.getPages()[0];
+
+            // 3. ดึงค่าจาก Form
+            const rawDate = document.getElementById('dateInput').value;
+            const thaiDate = formatThaiDate(rawDate);
+            const requesterName = document.getElementById('requesterName').value;
+            const userId = document.getElementById('userId').value;
+            const dept = document.getElementById('department').value;
+
+            // 4. เขียนข้อมูลลง PDF (ปรับค่า X, Y ตามฟอร์มของคุณ)
+            const textOptions = { size: 15, font: thaiFont, color: rgb(0, 0, 0) };
+
+            // พิมพ์วันที่ (เช่น 16 กุมภาพันธ์ 2569)
+            firstPage.drawText(thaiDate, { x: 150, y: 700, ...textOptions });
+
+            // พิมพ์ชื่อผู้ขอ
+            firstPage.drawText(requesterName, { x: 150, y: 660, ...textOptions });
+
+            // พิมพ์รหัส
+            firstPage.drawText(userId, { x: 150, y: 620, ...textOptions });
+
+            // พิมพ์สาขาวิชา
+            firstPage.drawText(dept, { x: 150, y: 580, ...textOptions });
+
+            // 5. ดาวน์โหลด
+            const pdfBytes = await pdfDoc.save();
+            const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `form_${userId || 'doc'}.pdf`;
+            link.click();
+
+        } catch (error) {
+            alert('เกิดข้อผิดพลาด: ' + error.message);
+            console.error(error);
+        }
+    }
 </script>
 
 </body>
 </html>
-
-
-
