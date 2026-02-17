@@ -32,9 +32,23 @@
 
     async function fillForm() {
         // 1. โหลดไฟล์ PDF ต้นฉบับ (ต้องวางไฟล์ไว้ใน GitHub Repository เดียวกัน)
-        // สมมติว่าไฟล์ชื่อ template.pdf
+
+        
+                // เปลี่ยนจากเดิม:
         const url = 'template.pdf'; 
-        const existingPdfBytes = await fetch(url).then(res => res.arrayBuffer());
+        
+        // เป็นแบบนี้ (ใช้ ./ เพื่อบอกว่าอยู่ที่เดียวกัน):
+        const url = './template.pdf'; 
+        
+        // หรือลองใส่ Log เพื่อดูว่าโหลดผ่านไหม
+        const existingPdfBytes = await fetch(url)
+            .then(res => {
+                if (!res.ok) throw new Error('หาไฟล์ PDF ต้นฉบับไม่เจอ!');
+                return res.arrayBuffer();
+            })
+            .catch(err => alert(err.message));
+        
+                
 
         // 2. โหลด Font ภาษาไทย (จำเป็นมากเพื่อให้พิมพ์ไทยได้)
         // แนะนำให้ใช้ไฟล์ .ttf ที่ฝากไว้บนเว็บหรือใน Repo
@@ -83,4 +97,5 @@
 
 </body>
 </html>
+
 
