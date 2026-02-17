@@ -38,29 +38,34 @@
 </div>
 
 <script>
-    // ฟังก์ชันแปลงวันที่ไทย
-    function formatThaiDate(dateString) {
-        if (!dateString) return "";
-        const months = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
-        const d = new Date(dateString);
-        return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear() + 543}`;
-    }
+function getThaiDateParts(dateString) {
+    if (!dateString) return { d: "", m: "", y: "" };
+    const months = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+    const d = new Date(dateString);
+    return {
+        d: d.getDate(),
+        m: months[d.getMonth()],
+        y: d.getFullYear() + 543
+    };
+}
 
-    async function generateWord() {
-        try {
-            // 1. โหลดไฟล์ต้นฉบับ
-            const response = await fetch('./template.docx');
-            const content = await response.arrayBuffer();
-            
-            const zip = new PizZip(content);
-            const doc = new window.docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
+async function generateWord() {
+    try {
+        const response = await fetch('./template.docx');
+        const content = await response.arrayBuffer();
+        const zip = new PizZip(content);
+        const doc = new window.docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
 
-            // 2. ดึงข้อมูลจากฟอร์ม
-            const data = {
-                thaiDate: formatThaiDate(document.getElementById('dateInput').value),
-                requesterName: document.getElementById('requesterName').value,
-                department: document.getElementById('department').value
-            };
+        // ดึงค่าวันที่แยกส่วน
+        const dateParts = getThaiDateParts(document.getElementById('dateInput').value);
+
+        const data = {
+            day: dateParts.d,          // เลขวันที่
+            month: dateParts.m,        // ชื่อเดือน
+            year: dateParts.y,         // เลข พ.ศ.
+            requesterName: document.getElementById('requesterName').value,
+            department: document.getElementById('department').value
+        };
 
             // 3. แทนที่รหัสใน Word ด้วยข้อมูลจริง
             doc.render(data);
