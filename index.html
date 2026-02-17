@@ -32,66 +32,64 @@
 <script>
     const { PDFDocument, rgb } = PDFLib;
 
-    async function fillForm() {
-        try {
-            // 1. โหลดไฟล์ PDF ต้นฉบับ
-            const url = './template.pdf'; 
-            const response = await fetch(url);
-            if (!response.ok) throw new Error('ไม่พบไฟล์ template.pdf ใน Repository ของคุณ');
-            const existingPdfBytes = await response.arrayBuffer();
+  async function fillForm() {
+    try {
+        // 1. โหลดไฟล์ PDF ต้นฉบับ
+        const url = './template.pdf'; 
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('ไม่พบไฟล์ template.pdf');
+        const existingPdfBytes = await response.arrayBuffer();
 
-            // 2. โหลด Font TH Sarabun (แบบบาง - สไตล์ Sarabun Light) จาก Google Fonts CDN
-            // ใช้ URL ที่มั่นใจว่าโหลดได้แน่นอน
-            const fontUrl = 'https://cdn.jsdelivr.net/gh/googlefonts/sarabun@master/fonts/ttf/Sarabun-Light.ttf';
-            const fontBytes = await fetch(fontUrl).then(res => {
-                if (!res.ok) throw new Error('โหลดฟอนต์ภาษาไทยไม่สำเร็จ');
-                return res.arrayBuffer();
-            });
+        // 2. แก้ไขตรงนี้: โหลดฟอนต์จากใน Repository ของเราเอง
+        const fontUrl = './Sarabun-Light.ttf'; // <--- เปลี่ยนมาใช้ไฟล์ในเครื่อง
+        const fontResponse = await fetch(fontUrl);
+        if (!fontResponse.ok) throw new Error('ไม่พบไฟล์ Sarabun-Light.ttf ใน GitHub ของคุณ');
+        const fontBytes = await fontResponse.arrayBuffer();
 
-            // 3. เริ่มจัดการ PDF
-            const pdfDoc = await PDFDocument.load(existingPdfBytes);
-            pdfDoc.registerFontkit(fontkit);
-            const thaiFont = await pdfDoc.embedFont(fontBytes);
+        // 3. เริ่มจัดการ PDF
+        const pdfDoc = await PDFDocument.load(existingPdfBytes);
+        pdfDoc.registerFontkit(fontkit);
+        const thaiFont = await pdfDoc.embedFont(fontBytes);
 
-            const pages = pdfDoc.getPages();
-            const firstPage = pages[0];
+        const pages = pdfDoc.getPages();
+        const firstPage = pages[0];
 
-            // 4. ดึงค่าจากหน้าเว็บ
-            const name = document.getElementById('userName').value || " ";
-            const id = document.getElementById('userId').value || " ";
+        // 4. ดึงค่าจากหน้าเว็บ
+        const name = document.getElementById('userName').value || " ";
+        const id = document.getElementById('userId').value || " ";
 
-            // 5. พิมพ์ชื่อลง PDF (ปรับ x, y ตามตำแหน่งฟอร์มของคุณ)
-            firstPage.drawText(name, {
-                x: 180, 
-                y: 655,
-                size: 16,
-                font: thaiFont,
-                color: rgb(0, 0, 0),
-            });
+        // 5. พิมพ์ข้อมูลลงใน PDF
+        firstPage.drawText(name, {
+            x: 180, 
+            y: 655,
+            size: 16,
+            font: thaiFont,
+            color: rgb(0, 0, 0),
+        });
 
-            // พิมพ์รหัสลง PDF
-            firstPage.drawText(id, {
-                x: 180,
-                y: 610,
-                size: 16,
-                font: thaiFont,
-                color: rgb(0, 0, 0),
-            });
+        firstPage.drawText(id, {
+            x: 180,
+            y: 610,
+            size: 16,
+            font: thaiFont,
+            color: rgb(0, 0, 0),
+        });
 
-            // 6. บันทึกและดาวน์โหลด
-            const pdfBytes = await pdfDoc.save();
-            const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `document_${id}.pdf`;
-            link.click();
+        // 6. บันทึกและดาวน์โหลด
+        const pdfBytes = await pdfDoc.save();
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `document_${id}.pdf`;
+        link.click();
 
-        } catch (error) {
-            console.error(error);
-            alert('เกิดข้อผิดพลาด: ' + error.message);
-        }
+    } catch (error) {
+        console.error(error);
+        alert('เกิดข้อผิดพลาด: ' + error.message + '\nกรุณาเช็คว่าอัปโหลดไฟล์ฟอนต์ชื่อ Sarabun-Light.ttf หรือยัง?');
     }
+}
 </script>
 
 </body>
 </html>
+
