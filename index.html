@@ -2,10 +2,12 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ระบบสร้างเอกสาร Word</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pizzip/3.1.4/pizzip.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.37.2/docxtemplater.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/pizzip@3.1.4/dist/pizzip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docxtemplater@3.37.2/build/docxtemplater.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
     
     <style>
         body { font-family: 'Sarabun', sans-serif; padding: 20px; background-color: #f8f9fa; }
@@ -15,7 +17,8 @@
         label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
         input, select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
         button { background-color: #2b5797; color: white; border: none; padding: 14px; width: 100%; cursor: pointer; border-radius: 6px; font-weight: bold; font-size: 16px; margin-top: 10px; }
-        button:hover { background-color: #1e3e6d; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        .status { font-size: 12px; text-align: center; margin-top: 10px; color: #666; }
     </style>
 </head>
 <body>
@@ -49,66 +52,5 @@
             <option>สาขาวิชาสาธารณสุขศาสตร์</option>
         </select>
     </div>
-    <button onclick="generateWord()">ดาวน์โหลดไฟล์ Word</button>
-</div>
-
-<script>
-    // ฟังก์ชันดึงวันที่แยกส่วน
-    function getThaiDateParts(dateString) {
-        if (!dateString) return { d: "", m: "", y: "" };
-        const months = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
-        const d = new Date(dateString);
-        return {
-            d: d.getDate(),
-            m: months[d.getMonth()],
-            y: d.getFullYear() + 543
-        };
-    }
-
-    async function generateWord() {
-        try {
-            // 1. ตรวจสอบว่า Library โหลดมาครบหรือยัง
-            if (typeof window.PizZip === 'undefined') {
-                throw new Error("Library PizZip ยังโหลดไม่เสร็จ กรุณารีเฟรชหน้าเว็บ");
-            }
-
-            // 2. โหลดไฟล์ต้นฉบับ
-            const response = await fetch('./template.docx');
-            if (!response.ok) throw new Error("ไม่พบไฟล์ template.docx ใน Repository");
-            const content = await response.arrayBuffer();
-            
-            // 3. ตั้งค่าการจัดการไฟล์ Word
-            const zip = new PizZip(content);
-            const doc = new window.docxtemplater(zip, { 
-                paragraphLoop: true, 
-                linebreaks: true 
-            });
-
-            // 4. ดึงข้อมูลจากฟอร์ม
-            const dateParts = getThaiDateParts(document.getElementById('dateInput').value);
-            const data = {
-                day: dateParts.d,
-                month: dateParts.m,
-                year: dateParts.y,
-                requesterName: document.getElementById('requesterName').value,
-                department: document.getElementById('department').value
-            };
-
-            // 5. ประมวลผลแทนที่ Tag
-            doc.render(data);
-
-            // 6. สร้างไฟล์และดาวน์โหลด
-            const out = doc.getZip().generate({
-                type: "blob",
-                mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            });
-            saveAs(out, "เอกสารคำร้อง.docx");
-
-        } catch (error) {
-            console.error(error);
-            alert("เกิดข้อผิดพลาด: " + error.message);
-        }
-    }
-</script>
-</body>
-</html>
+    <button id="btnSubmit" onclick="generateWord()" disabled>กำลังโหลดระบบ...</button>
+    <div id="statusLabel" class="status
