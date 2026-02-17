@@ -81,7 +81,7 @@
         try {
             // 1. โหลดไฟล์ PDF และ Font (ตรวจสอบชื่อไฟล์ให้ตรงกับใน GitHub)
             const pdfUrl = './template.pdf';
-            const fontUrl = './Sarabun-Light.ttf';
+            const fontUrl = './THSarabunNew.ttf';
 
             const [pdfTemplateBytes, fontBytes] = await Promise.all([
                 fetch(pdfUrl).then(res => { if(!res.ok) throw new Error('ไม่พบ template.pdf'); return res.arrayBuffer(); }),
@@ -133,3 +133,4 @@
 
 </body>
 </html>
+
