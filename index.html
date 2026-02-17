@@ -2,74 +2,86 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ทดสอบระบบจองห้อง - Loei Rajabhat University</title>
+    <title>ระบบสร้างเอกสาร PDF</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
     <style>
-        body {
-            margin: 0;
-            padding: 20px;
-            font-family: 'Kanit', sans-serif;
-            background-color: #f0f2f5;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .preview-container {
-            width: 100%;
-            max-width: 1100px;
+        body { font-family: 'Tahoma', sans-serif; padding: 20px; background: #f0f2f5; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, textarea { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        button { background: #007bff; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; width: 100%; font-size: 16px; }
+        button:hover { background: #0056b3; }
+        
+        /* สไตล์ของฟอร์มที่จะปรากฏใน PDF */
+        #pdf-template { 
+            padding: 40px; 
+            border: 2px solid #333; 
+            width: 500px; 
+            position: absolute; 
+            left: -9999px; /* ซ่อนจากหน้าเว็บแต่ให้ script เห็น */
             background: white;
-            padding: 10px;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            border: 1px solid #ddd;
-        }
-
-        /* ส่วนหัวจำลองหน้าเว็บ WordPress */
-        .header-mockup {
-            text-align: center;
-            margin-bottom: 20px;
-            color: #2c3e50;
-        }
-
-        /* การตั้งค่า Iframe */
-        .calendar-iframe {
-            width: 100%;
-            height: 850px; /* ปรับความสูงให้พอดีกับหน้าจอคอมพิวเตอร์ */
-            border: none;
-            border-radius: 10px;
-            display: block;
-        }
-
-        /* ปรับแต่งสำหรับมือถือ */
-        @media (max-width: 768px) {
-            body { padding: 10px; }
-            .calendar-iframe {
-                height: 650px; /* ลดความสูงลงเมื่อดูบนมือถือ */
-            }
-            .header-mockup h1 { font-size: 1.2rem; }
         }
     </style>
 </head>
 <body>
 
-    <div class="header-mockup">
-        <h1>ตัวอย่างการแสดงผลบนเว็บไซต์ (Preview)</h1>
-        <p>อาคารศูนย์คอมพิวเตอร์และศูนย์ภาษา มหาวิทยาลัยราชภัฏเลย</p>
+<div class="container">
+    <h2>บันทึกข้อมูลออก PDF</h2>
+    <div class="form-group">
+        <label>หัวข้อเอกสาร:</label>
+        <input type="text" id="title" placeholder="เช่น รายงานประจำเดือน">
     </div>
+    <div class="form-group">
+        <label>ชื่อผู้บันทึก:</label>
+        <input type="text" id="name" placeholder="ชื่อ-นามสกุล">
+    </div>
+    <div class="form-group">
+        <label>รายละเอียด:</label>
+        <textarea id="detail" rows="4"></textarea>
+    </div>
+    <button onclick="generatePDF()">ดาวน์โหลดเป็น PDF</button>
+</div>
 
-    <div class="preview-container">
-        <iframe 
-            src="https://script.google.com/a/macros/lru.ac.th/s/AKfycbwCM-_EbR3qNBrBYQgAWAqlLW20XrThn_9xbkeOWfZlz1TUmBoLoohLDMGkxRL3-F2q6Q/exec" 
-            class="calendar-iframe"
-            allow="geolocation; microphone; camera; midi; vrar; accountability-inst-id;"
-            scrolling="yes">
-        </iframe>
+<div id="pdf-template">
+    <h1 style="text-align: center; color: #007bff;">เอกสารบันทึกข้อมูล</h1>
+    <hr>
+    <p><strong>หัวข้อ:</strong> <span id="pdf-title"></span></p>
+    <p><strong>ชื่อผู้เขียน:</strong> <span id="pdf-name"></span></p>
+    <p><strong>วันที่:</strong> <span id="pdf-date"></span></p>
+    <div style="margin-top: 20px; border: 1px solid #eee; padding: 10px;">
+        <strong>รายละเอียด:</strong><br>
+        <p id="pdf-detail"></p>
     </div>
+</div>
 
-    <div style="margin-top: 20px; font-size: 0.8rem; color: #888;">
-        ตรวจสอบการคลิกที่ Legend และ Popup Swal.fire ว่าทำงานปกติหรือไม่
-    </div>
+<script>
+    async function generatePDF() {
+        const { jsPDF } = window.jspdf;
+        
+        // 1. ดึงค่าจาก Form มาใส่ใน Template
+        document.getElementById('pdf-title').innerText = document.getElementById('title').value;
+        document.getElementById('pdf-name').innerText = document.getElementById('name').value;
+        document.getElementById('pdf-detail').innerText = document.getElementById('detail').value;
+        document.getElementById('pdf-date').innerText = new Date().toLocaleDateString('th-TH');
+
+        // 2. ใช้ html2canvas แปลง Template เป็นภาพ
+        const element = document.getElementById('pdf-template');
+        const canvas = await html2canvas(element, { scale: 2 });
+        const imgData = canvas.toDataURL('image/png');
+
+        // 3. สร้างไฟล์ PDF และใส่ภาพลงไป
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const imgProps = pdf.getImageProperties(imgData);
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        pdf.save("document.pdf");
+    }
+</script>
 
 </body>
 </html>
