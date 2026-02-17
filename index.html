@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>ระบบสร้างเอกสาร Word</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.37.2/docxtemplater.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pizzip/3.1.4/pizzip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    
+    <style>
+        body { font-family: 'Sarabun', sans-serif; padding: 20px; background-color: #f8f9fa; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 15px; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+        button { background-color: #2b5797; color: white; border: none; padding: 12px; width: 100%; cursor: pointer; border-radius: 5px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h3>สร้างไฟล์ Word (.docx)</h3>
+    <div class="form-group">
+        <label>วันที่:</label>
+        <input type="date" id="dateInput">
+    </div>
+    <div class="form-group">
+        <label>ชื่อผู้ขอ:</label>
+        <input type="text" id="requesterName">
+    </div>
+    <div class="form-group">
+        <label>สาขาวิชา:</label>
+        <select id="department">
+            <option>สาขาวิชาวิทยาการคอมพิวเตอร์</option>
+            <option>สาขาวิชาเทคโนโลยีสารสนเทศ</option>
+            </select>
+    </div>
+    <button onclick="generateWord()">ดาวน์โหลดไฟล์ Word</button>
+</div>
+
+<script>
+    // ฟังก์ชันแปลงวันที่ไทย
+    function formatThaiDate(dateString) {
+        if (!dateString) return "";
+        const months = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+        const d = new Date(dateString);
+        return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear() + 543}`;
+    }
+
+    async function generateWord() {
+        try {
+            // 1. โหลดไฟล์ต้นฉบับ
+            const response = await fetch('./template.docx');
+            const content = await response.arrayBuffer();
+            
+            const zip = new PizZip(content);
+            const doc = new window.docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
+
+            // 2. ดึงข้อมูลจากฟอร์ม
+            const data = {
+                thaiDate: formatThaiDate(document.getElementById('dateInput').value),
+                requesterName: document.getElementById('requesterName').value,
+                department: document.getElementById('department').value
+            };
+
+            // 3. แทนที่รหัสใน Word ด้วยข้อมูลจริง
+            doc.render(data);
+
+            // 4. สร้างไฟล์และดาวน์โหลด
+            const out = doc.getZip().generate({
+                type: "blob",
+                mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            });
+            saveAs(out, "เอกสารคำร้อง.docx");
+
+        } catch (error) {
+            alert("เกิดข้อผิดพลาด: " + error.message);
+        }
+    }
+</script>
+</body>
+</html>
