@@ -7,96 +7,91 @@
     <script src="https://unpkg.com/@pdf-lib/fontkit@0.0.4/dist/fontkit.umd.min.js"></script>
     
     <style>
-        body { font-family: 'Tahoma', sans-serif; padding: 30px; line-height: 1.6; }
-        .container { max-width: 500px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 10px; }
-        input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; }
-        button { background-color: #28a745; color: white; border: none; padding: 10px 20px; cursor: pointer; width: 100%; font-size: 16px; }
-        button:hover { background-color: #218838; }
+        body { font-family: 'Tahoma', sans-serif; padding: 30px; line-height: 1.6; background-color: #f4f7f6; }
+        .container { max-width: 500px; margin: auto; border: none; padding: 30px; border-radius: 15px; background: white; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h3 { color: #333; text-align: center; }
+        label { font-size: 14px; color: #666; }
+        input { width: 100%; padding: 12px; margin: 8px 0 20px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        button { background-color: #2ecc71; color: white; border: none; padding: 12px; cursor: pointer; width: 100%; font-size: 16px; border-radius: 8px; font-weight: bold; transition: 0.3s; }
+        button:hover { background-color: #27ae60; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h3>กรอกข้อมูลลงฟอร์ม (PDF-lib)</h3>
+    <h3>บันทึกข้อมูลลงแบบฟอร์ม</h3>
     <label>ชื่อ-นามสกุล:</label>
-    <input type="text" id="userName" placeholder="ระบุชื่อที่จะให้ไปปรากฏใน PDF">
+    <input type="text" id="userName" placeholder="เช่น นายสมชาย ใจดี">
     
-    <label>รหัสนักพนักงาน/นักศึกษา:</label>
-    <input type="text" id="userId" placeholder="ระบุรหัส">
+    <label>รหัสพนักงาน/นักศึกษา:</label>
+    <input type="text" id="userId" placeholder="เช่น 64001234">
     
-    <button onclick="fillForm()">สร้างไฟล์ PDF จากฟอร์มต้นฉบับ</button>
+    <button onclick="fillForm()">สร้างและดาวน์โหลด PDF</button>
 </div>
 
 <script>
     const { PDFDocument, rgb } = PDFLib;
 
     async function fillForm() {
-        // 1. โหลดไฟล์ PDF ต้นฉบับ (ต้องวางไฟล์ไว้ใน GitHub Repository เดียวกัน)
+        try {
+            // 1. โหลดไฟล์ PDF ต้นฉบับ
+            const url = './template.pdf'; 
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('ไม่พบไฟล์ template.pdf ใน Repository ของคุณ');
+            const existingPdfBytes = await response.arrayBuffer();
 
-        
-    
-        // เป็นแบบนี้ (ใช้ ./ เพื่อบอกว่าอยู่ที่เดียวกัน):
-        const url = './template.pdf'; 
-        
-        // หรือลองใส่ Log เพื่อดูว่าโหลดผ่านไหม
-        const existingPdfBytes = await fetch(url)
-            .then(res => {
-                if (!res.ok) throw new Error('หาไฟล์ PDF ต้นฉบับไม่เจอ!');
+            // 2. โหลด Font TH Sarabun (แบบบาง - สไตล์ Sarabun Light) จาก Google Fonts CDN
+            // ใช้ URL ที่มั่นใจว่าโหลดได้แน่นอน
+            const fontUrl = 'https://cdn.jsdelivr.net/gh/googlefonts/sarabun@master/fonts/ttf/Sarabun-Light.ttf';
+            const fontBytes = await fetch(fontUrl).then(res => {
+                if (!res.ok) throw new Error('โหลดฟอนต์ภาษาไทยไม่สำเร็จ');
                 return res.arrayBuffer();
-            })
-            .catch(err => alert(err.message));
-        
-                
+            });
 
-        // 2. โหลด Font ภาษาไทย (จำเป็นมากเพื่อให้พิมพ์ไทยได้)
-        // แนะนำให้ใช้ไฟล์ .ttf ที่ฝากไว้บนเว็บหรือใน Repo
-        const fontUrl = 'https://raw.githubusercontent.com/google/fonts/master/ofl/sarabun/Sarabun-Regular.ttf'; // ตัวอย่าง Font Itim
-        const fontBytes = await fetch(fontUrl).then(res => res.arrayBuffer());
+            // 3. เริ่มจัดการ PDF
+            const pdfDoc = await PDFDocument.load(existingPdfBytes);
+            pdfDoc.registerFontkit(fontkit);
+            const thaiFont = await pdfDoc.embedFont(fontBytes);
 
-        // 3. เริ่มจัดการ PDF
-        const pdfDoc = await PDFDocument.load(existingPdfBytes);
-        pdfDoc.registerFontkit(fontkit);
-        const thaiFont = await pdfDoc.embedFont(fontBytes);
+            const pages = pdfDoc.getPages();
+            const firstPage = pages[0];
 
-        const pages = pdfDoc.getPages();
-        const firstPage = pages[0];
+            // 4. ดึงค่าจากหน้าเว็บ
+            const name = document.getElementById('userName').value || " ";
+            const id = document.getElementById('userId').value || " ";
 
-        // 4. ดึงค่าจากฟอร์มหน้าเว็บ
-        const name = document.getElementById('userName').value;
-        const id = document.getElementById('userId').value;
+            // 5. พิมพ์ชื่อลง PDF (ปรับ x, y ตามตำแหน่งฟอร์มของคุณ)
+            firstPage.drawText(name, {
+                x: 180, 
+                y: 655,
+                size: 16,
+                font: thaiFont,
+                color: rgb(0, 0, 0),
+            });
 
-        // 5. เขียนข้อความลงไปในพิกัด X, Y (ต้องลองกะระยะดู)
-        // หมายเหตุ: (0,0) คือมุมซ้ายล่างของกระดาษ
-        firstPage.drawText(name, {
-            x: 150, // ปรับตำแหน่งตามฟอร์มของคุณ
-            y: 650,
-            size: 14,
-            font: thaiFont,
-            color: rgb(0, 0, 0),
-        });
+            // พิมพ์รหัสลง PDF
+            firstPage.drawText(id, {
+                x: 180,
+                y: 610,
+                size: 16,
+                font: thaiFont,
+                color: rgb(0, 0, 0),
+            });
 
-        firstPage.drawText(id, {
-            x: 150,
-            y: 600,
-            size: 14,
-            font: thaiFont,
-            color: rgb(0, 0, 0),
-        });
+            // 6. บันทึกและดาวน์โหลด
+            const pdfBytes = await pdfDoc.save();
+            const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `document_${id}.pdf`;
+            link.click();
 
-        // 6. ส่งไฟล์ให้ผู้ใช้ดาวน์โหลด
-        const pdfBytes = await pdfDoc.save();
-        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = 'filled_form.pdf';
-        link.click();
+        } catch (error) {
+            console.error(error);
+            alert('เกิดข้อผิดพลาด: ' + error.message);
+        }
     }
 </script>
 
 </body>
 </html>
-
-
-
-
-
