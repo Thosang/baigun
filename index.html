@@ -18,7 +18,7 @@
         window.generateWord = async function() {
             console.log("เริ่มทำงาน..."); // ลองใส่ log เพื่อเช็คใน Console
             try {
-                const response = await fetch('./template.docx');
+                const response = await fetch('./templated.docx');
                 if (!response.ok) throw new Error("หาไฟล์ template.docx ไม่เจอ");
                 
                 const content = await response.arrayBuffer();
