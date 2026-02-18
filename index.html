@@ -3,54 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <title>ระบบสร้างเอกสาร Word</title>
-<script src="pizzip.min.js"></script>
-<script src="docxtemplater.js"></script>
-<script src="FileSaver.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pizzip/3.1.4/pizzip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.37.2/docxtemplater.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    
+    <style>
+        body { font-family: 'Tahoma', sans-serif; padding: 20px; background-color: #f4f7f6; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        button { background-color: #2b5797; color: white; border: none; padding: 14px; width: 100%; cursor: pointer; border-radius: 6px; font-weight: bold; font-size: 16px; width: 100%; }
+        button:hover { background-color: #1a3a63; }
+    </style>
 </head>
 <body>
 
     <div class="container">
+        <h3>แบบฟอร์มขอเอกสาร</h3>
+        <div class="form-group">
+            <label>วันที่:</label>
+            <input type="date" id="dateInput">
+        </div>
+        <div class="form-group">
+            <label>ชื่อผู้ขอ:</label>
+            <input type="text" id="requesterName" placeholder="ระบุชื่อ-นามสกุล">
+        </div>
+        <div class="form-group">
+            <label>สาขาวิชา:</label>
+            <select id="department">
+                <option value="">-- เลือกสาขาวิชา --</option>
+                <option>สาขาวิชาวิทยาการคอมพิวเตอร์</option>
+                <option>สาขาวิชาเทคโนโลยีสารสนเทศ</option>
+                <option>สาขาวิชาคณิตศาสตร์</option>
+            </select>
+        </div>
         <button type="button" onclick="generateWord()">ดาวน์โหลดไฟล์ Word</button>
     </div>
 
     <script>
-        // ตรวจสอบว่าฟังก์ชันถูกประกาศไว้ในระดับ Global
-        window.generateWord = async function() {
-            console.log("เริ่มทำงาน..."); // ลองใส่ log เพื่อเช็คใน Console
-            try {
-                const response = await fetch('./templated.docx');
-                if (!response.ok) throw new Error("หาไฟล์ template.docx ไม่เจอ");
-                
-                const content = await response.arrayBuffer();
-                const zip = new PizZip(content);
-                const doc = new window.docxtemplater(zip, { 
-                    paragraphLoop: true, 
-                    linebreaks: true 
-                });
-
-                const dateParts = getThaiDateParts(document.getElementById('dateInput').value);
-                const data = {
-                    day: dateParts.d,
-                    month: dateParts.m,
-                    year: dateParts.y,
-                    requesterName: document.getElementById('requesterName').value,
-                    department: document.getElementById('department').value
-                };
-
-                doc.render(data);
-
-                const out = doc.getZip().generate({
-                    type: "blob",
-                    mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                });
-                saveAs(out, "เอกสาร.docx");
-
-            } catch (error) {
-                console.error(error);
-                alert("เกิดข้อผิดพลาด: " + error.message);
-            }
-        };
-
+        // ย้ายฟังก์ชันมาไว้ข้างบนเพื่อให้เรียกใช้งานได้ง่าย
         function getThaiDateParts(dateString) {
             if (!dateString) return { d: "", m: "", y: "" };
             const months = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
@@ -60,6 +52,48 @@
                 m: months[d.getMonth()],
                 y: d.getFullYear() + 543
             };
+        }
+
+        async function generateWord() {
+            console.log("เริ่มทำงาน...");
+            
+            // ตรวจสอบว่ากรอกข้อมูลครบหรือยัง
+            const dateVal = document.getElementById('dateInput').value;
+            if (!dateVal) { alert("กรุณาเลือกวันที่ก่อนครับ"); return; }
+
+            try {
+                // ตรวจสอบชื่อไฟล์ให้ตรงกับใน GitHub (ถ้าชื่อ templated.docx ก็ต้องแก้ตามนั้น)
+                const response = await fetch('./templated.docx'); 
+                if (!response.ok) throw new Error("หาไฟล์ templated.docx ไม่เจอใน GitHub ของคุณ");
+                
+                const content = await response.arrayBuffer();
+                const zip = new PizZip(content);
+                const doc = new window.docxtemplater(zip, { 
+                    paragraphLoop: true, 
+                    linebreaks: true 
+                });
+
+                const dateParts = getThaiDateParts(dateVal);
+                const data = {
+                    day: dateParts.d,
+                    month: dateParts.m,
+                    year: dateParts.y,
+                    requesterName: document.getElementById('requesterName').value || "",
+                    department: document.getElementById('department').value || ""
+                };
+
+                doc.render(data);
+
+                const out = doc.getZip().generate({
+                    type: "blob",
+                    mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                });
+                saveAs(out, "เอกสารคำร้อง.docx");
+
+            } catch (error) {
+                console.error(error);
+                alert("เกิดข้อผิดพลาด: " + error.message);
+            }
         }
     </script>
 </body>
