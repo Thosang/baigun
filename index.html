@@ -3,44 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <title>ระบบสร้างเอกสาร Word</title>
-    
-    <script src="./pizzip.min.js"></script>
-    <script src="./docxtemplater.js"></script>
-    <script src="./FileSaver.js"></script>
-    
-    <style>
-        body { font-family: 'Sarabun', sans-serif; padding: 20px; background-color: #f8f9fa; }
-        .container { max-width: 550px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input, select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; }
-        button { background-color: #2b5797; color: white; border: none; padding: 14px; width: 100%; cursor: pointer; border-radius: 6px; font-weight: bold; }
-    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pizzip/3.1.4/pizzip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.37.2/docxtemplater.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 </head>
 <body>
+
     <div class="container">
-        <h3>สร้างไฟล์ Word (.docx)</h3>
-        <div class="form-group">
-            <label>วันที่:</label>
-            <input type="date" id="dateInput">
-        </div>
-        <div class="form-group">
-            <label>ชื่อผู้ขอ:</label>
-            <input type="text" id="requesterName">
-        </div>
-        <div class="form-group">
-            <label>สาขาวิชา:</label>
-            <select id="department">
-                <option>สาขาวิชาวิทยาการคอมพิวเตอร์</option>
-                <option>สาขาวิชาเทคโนโลยีสารสนเทศ</option>
-                </select>
-        </div>
-        <button onclick="generateWord()">ดาวน์โหลดไฟล์ Word</button>
+        <button type="button" onclick="generateWord()">ดาวน์โหลดไฟล์ Word</button>
     </div>
 
     <script>
-        // ฟังก์ชัน getThaiDateParts และ generateWord เหมือนเดิมที่เคยให้ไว้ครับ
-        // อย่าลืมตรวจสอบว่าไฟล์ template.docx อยู่ในที่เดียวกันด้วยนะครับ
+        // ตรวจสอบว่าฟังก์ชันถูกประกาศไว้ในระดับ Global
+        window.generateWord = async function() {
+            console.log("เริ่มทำงาน..."); // ลองใส่ log เพื่อเช็คใน Console
+            try {
+                const response = await fetch('./template.docx');
+                if (!response.ok) throw new Error("หาไฟล์ template.docx ไม่เจอ");
+                
+                const content = await response.arrayBuffer();
+                const zip = new PizZip(content);
+                const doc = new window.docxtemplater(zip, { 
+                    paragraphLoop: true, 
+                    linebreaks: true 
+                });
+
+                const dateParts = getThaiDateParts(document.getElementById('dateInput').value);
+                const data = {
+                    day: dateParts.d,
+                    month: dateParts.m,
+                    year: dateParts.y,
+                    requesterName: document.getElementById('requesterName').value,
+                    department: document.getElementById('department').value
+                };
+
+                doc.render(data);
+
+                const out = doc.getZip().generate({
+                    type: "blob",
+                    mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                });
+                saveAs(out, "เอกสาร.docx");
+
+            } catch (error) {
+                console.error(error);
+                alert("เกิดข้อผิดพลาด: " + error.message);
+            }
+        };
+
+        function getThaiDateParts(dateString) {
+            if (!dateString) return { d: "", m: "", y: "" };
+            const months = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+            const d = new Date(dateString);
+            return {
+                d: d.getDate(),
+                m: months[d.getMonth()],
+                y: d.getFullYear() + 543
+            };
+        }
     </script>
 </body>
 </html>
