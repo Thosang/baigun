@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>รายงานขอซื้อหรือขอจ้าง</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Mitr&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.jsdelivr.net/npm/pizzip@3.1.4/dist/pizzip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docxtemplater@3.37.2/build/docxtemplater.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    
+    <style>
+        /* เปลี่ยนเป็น Font Mitr และปรับขนาดให้อ่านง่าย */
+        body { font-family: 'Mitr', cursive; padding: 20px; background-color: #f4f7f6; color: #333; font-size: 16px; }
+        .container { max-width: 1100px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h3 { text-align: center; color: #2b5797; border-bottom: 2px solid #2b5797; padding-bottom: 10px; font-size: 24px; }
+        .section-title { font-weight: bold; color: #2b5797; margin-top: 25px; margin-bottom: 10px; border-left: 4px solid #2b5797; padding: 8px 10px; background: #eef2f7; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 1em; }
+        input, select, textarea { font-family: 'Mitr', cursive; width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 15px; }
+        .flex-row { display: flex; gap: 15px; flex-wrap: wrap; }
+        .flex-row > div { flex: 1; min-width: 250px; }
+        .radio-group {
+            display: flex;
+            gap: 30px;           /* เพิ่มระยะห่างระหว่าง "ขอซื้อ" และ "ขอจ้าง" */
+            flex-wrap: wrap;      /* อนุญาตให้ลงบรรทัดใหม่ได้ถ้าพื้นที่ไม่พอ (ป้องกันข้อความทับกัน) */
+            padding: 10px 0;
+            align-items: center;
+            width: 100%;         /* ขยายพื้นที่กลุ่มให้เต็มความกว้างคอนเทนเนอร์ */
+        }
+
+        .radio-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;           /* ระยะห่างระหว่างปุ่มวงกลมกับตัวอักษร */
+            cursor: pointer;
+            white-space: nowrap; /* บังคับให้ตัวหนังสือในตัวเลือกเดียวกันไม่แตกแถว */
+            min-width: fit-content; /* ขยายขนาดช่องตามความยาวข้อความจริง */
+            padding: 5px 10px;   /* เพิ่มพื้นที่รอบๆ ให้กดง่ายขึ้น */
+        }
+
+        /* ปรับขนาดปุ่ม Radio ให้ใหญ่ขึ้นเพื่อความสมดุล */
+        .radio-item input[type="radio"] {
+            width: 20px;
+            height: 20px;
+            margin: 0;
+            cursor: pointer;
+        }
+        
+/* กำหนดความกว้างให้ตารางเต็มพื้นที่ */
+#itemTableBody parentตาราง { 
+    width: 100%; 
+}
+
+/* เลือกคอลัมน์ที่ 2 (รายการ) */
+#itemTableBody td:nth-child(2), 
+#itemTableBody th:nth-child(2) {
+    width: 350px; /* หรือปรับเป็น % เช่น 30% */
+}
+
+/* ปรับ textarea ให้ขยายเต็มคอลัมน์ */
+.t-name {
+    width: 100%;
+    box-sizing: border-box; /* ป้องกัน textarea ล้นขอบ */
+}
+
+
+
+
+
+
+        .table-container { overflow-x: auto; margin-top: 15px; }
+        table { width: 100%; border-collapse: collapse; background: white; }
+        th, td { border: 1px solid #aaa; padding: 8px; text-align: center; }
+        th { background-color: #f2f2f2; }
+        .btn-add { background-color: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; margin-bottom: 10px; font-family: 'Mitr'; }
+        .btn-del { background-color: #dc3545; color: white; border: none; padding: 5px 8px; border-radius: 4px; cursor: pointer; }
+        .total-cell { font-weight: bold; background-color: #f9f9f9; color: #d32f2f; }
+        
+        #bahtTextDisplay { color: #2b5797; font-weight: bold; font-style: italic; }
+
+        button.main-btn { background-color: #2b5797; color: white; border: none; padding: 16px; width: 100%; cursor: pointer; border-radius: 8px; font-weight: bold; font-size: 20px; margin-top: 20px; transition: 0.3s; font-family: 'Mitr'; }
+        button.main-btn:hover { background-color: #1a3a63; transform: translateY(-2px); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h3>แบบฟอร์มจัดซื้อจัดจ้าง</h3>
+    
+    <div class="section-title">ข้อมูลผู้ขอและหน่วยงาน</div>
+    <div class="flex-row">
+        <div class="form-group">
+            <label>วันที่:</label>
+            <input type="date" id="dateInput">
+        </div>
+        <div class="form-group">
+            <label>ชื่อผู้ขอ</label>
+            <input type="text" id="requesterName" placeholder="เช่น ผศ.ดร. สมชาย ใจดี">
+        </div>
+    </div>
+    
+    <div class="form-group">
+        <label>สาขาวิชา:</label>
+        <select id="department">
+            <option value="">-- เลือกสาขาวิชา --</option>
+            <option>สาขาวิชาคณิตศาสตร์</option>
+            <option>สาขาวิชาวิทยาศาสตร์ชีวภาพ</option>
+            <option>สาขาวิชาเคมีประยุกต์</option>
+            <option>สาขาวิชาฟิสิกส์</option>
+            <option>สาขาวิชาเกษตรศาสตร์</option>
+            <option>สาขาวิชาสัตวศาสตร์</option>
+            <option>สาขาวิชาวิทยาการคอมพิวเตอร์</option>
+            <option>สาขาวิชาเทคโนโลยีสารสนเทศ</option>
+            <option>สาขาวิชาวิทยาศาสตร์และเทคโนโลยีสิ่งแวดล้อม</option>
+            <option>สาขาวิชาอาหารและโภชนาการ</option>
+            <option>สาขาวิชาวิทยาศาสตร์การกีฬาและการออกกำลังกาย</option>
+            <option>สาขาวิชาเทคโนโลยีอาหาร</option>
+            <option>สาขาวิชาสาธารณสุขศาสตร์</option>
+        </select>
+    </div>
+    <div class="section-title">รายละเอียดความประสงค์</div>
+    <div class="form-group">
+        <div class="radio-group">
+            <label class="radio-item"><input type="radio" name="requestType" value="buy" checked> ขอซื้อ</label>
+            <label class="radio-item"><input type="radio" name="requestType" value="hire"> ขอจ้าง</label>
+        </div>
+    </div>
+    <div class="form-group">
+        <label>วัตถุประสงค์ (objective):</label>
+        <input type="text" id="objective">
+    </div>
+
+
+
+      <div class="section-title">ข้อมูลโครงการและงบประมาณ</div>
+    <div class="form-group">
+        <label>เพื่อใช้ในโครงการ</label>
+        <input type="text" id="forProject">
+    </div>
+    <div class="form-group">
+        <label>ใช้ในงาน/กิจกรรม</label>
+        <input type="text" id="activity">
+    </div>
+    <div class="flex-row">
+        <div class="form-group">
+            <label>แหล่งงบประมาณ :</label>
+            <input type="text" placeholder="เช่น แผ่นดิน บก.ศ. กศ.พ" id="moneyfrom">
+        </div>
+        <div class="form-group">
+            <label>หมายเลขโครงการ :</label>
+            <input type="number" id="noProject">
+        </div>
+    </div>
+    <div class="flex-row">
+        <div class="form-group">
+            <label>วงเงินรวมงบประมาณ:</label>
+            <input type="text" id="budget" readonly style="background:#eee;" placeholder="คำนวณอัตโนมัติจากตาราง">
+        </div>
+        <div class="form-group">
+            <label>กำหนดเวลาต้องการพัสดุ -วัน:</label>
+            <input type="number" id="useDay">
+        </div>
+    </div>
+
+    <div class="section-title">ราคามาตรฐาน (กรณีครุภัณฑ์)</div>
+    <div class="form-group">
+        <div class="radio-group">
+            <label class="radio-item"><input type="radio" name="standardType" value="low" checked> ต่ำกว่า/เท่ากับมาตรฐาน</label>
+            <label class="radio-item"><input type="radio" name="standardType" value="high"> สูงกว่ามาตรฐาน</label>
+        </div>
+    </div>
+    <div class="form-group">
+        <label>เหตุผลความจำเป็น :</label>
+        <textarea id="whyReason" rows="2"></textarea>
+    </div>
+
+    <div class="section-title">พันธกิจและยุทธศาสตร์</div>
+    <div class="form-group">
+        <label>ตามพันธกิจ:</label>
+        <div class="radio-group">
+            <label class="radio-item"><input type="radio" name="mission" value="p1" checked> การจัดการศึกษา</label>
+            <label class="radio-item"><input type="radio" name="mission" value="p2"> การวิจัย</label>
+            <label class="radio-item"><input type="radio" name="mission" value="p3"> การบริการวิชาการ</label>
+            <label class="radio-item"><input type="radio" name="mission" value="p4"> การทำนุบำรุงศิลปวัฒนธรรม</label>
+        </div>
+    </div>
+    <div class="form-group">
+        <label>ยุทธศาสตร์ :</label>
+        <input type="text" id="yutt" placeholder="ระบุยุทธศาสตร์ที่เกี่ยวข้อง">
+    </div>
+
+    
+
+    <div class="section-title">รายการพัสดุ/งานจ้างที่ขอเนินการ</div>
+    <button type="button" class="btn-add" onclick="addRow()">+ เพิ่มรายการ</button>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th rowspan="2">ลำดับ</th>
+                    <th rowspan="2">รายการ (ชื่อ ลักษณะ ขนาด ยี่ห้อ)</th>
+                    <th colspan="2">ราคากลาง</th>
+                    <th colspan="4">ขอจัดซื้อ/จ้างครั้งนี้</th>
+                    <th rowspan="2">เหตุผลความจำเป็น</th>
+                    <th rowspan="2">ลบ</th>
+                </tr>
+                <tr>
+                    <th>ราคา</th>
+                    <th>หน่วย</th>
+                    <th>จำนวน</th>
+                    <th>หน่วย</th>
+                    <th>ราคา/หน่วย</th>
+                    <th>รวมเงิน</th>
+                </tr>
+            </thead>
+            <tbody id="itemTableBody"></tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="7" style="text-align:right; font-weight:bold;">เงินรวมทั้งสิ้น:</td>
+                    <td id="grandTotalText" class="total-cell">0.00</td>
+                    <td colspan="2">บาท</td>
+                </tr>
+                <tr>
+                    <td colspan="10" style="text-align:right; background: #fffde7;">
+                        (ตัวอักษร: <span id="bahtTextDisplay">ศูนย์บาทถ้วน</span>)
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+  
+    <button type="button" class="main-btn" onclick="generateWord()">สร้างและดาวน์โหลดไฟล์ Word</button>
+</div>
+
+<script>
+    let rowCount = 0;
+
+    // ฟังก์ชันช่วย Sync หน่วย
+    function syncUnit(input) {
+        const tr = input.closest('tr');
+        tr.querySelector('.t-unit').value = input.value;
+    }
+
+    function addRow() {
+        rowCount++;
+        const tbody = document.getElementById('itemTableBody');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${rowCount}</td>
+            <td><textarea class="t-name" rows="2"></textarea></td>
+            <td><input type="number" class="t-m-price" step="0.01"></td>
+            <td><input type="text" class="t-m-unit" oninput="syncUnit(this)"></td>
+            <td><input type="number" class="t-qty" oninput="calculateRow(this)"></td>
+            <td><input type="text" class="t-unit"></td>
+            <td><input type="number" class="t-price" oninput="calculateRow(this)" step="0.01"></td>
+            <td class="t-total">0.00</td>
+            <td><textarea class="t-reason" rows="2"></textarea></td>
+            <td><button type="button" class="btn-del" onclick="removeRow(this)">ลบ</button></td>
+        `;
+        tbody.appendChild(tr);
+    }
+
+    function removeRow(btn) {
+        btn.closest('tr').remove();
+        updateRowNumbers();
+        calculateGrandTotal();
+    }
+
+    function updateRowNumbers() {
+        const rows = document.querySelectorAll('#itemTableBody tr');
+        rowCount = 0;
+        rows.forEach(row => {
+            rowCount++;
+            row.cells[0].innerText = rowCount;
+        });
+    }
+
+    function calculateRow(input) {
+        const tr = input.closest('tr');
+        const qty = parseFloat(tr.querySelector('.t-qty').value) || 0;
+        const price = parseFloat(tr.querySelector('.t-price').value) || 0;
+        const total = qty * price;
+        tr.querySelector('.t-total').innerText = total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        calculateGrandTotal();
+    }
+
+    function calculateGrandTotal() {
+        let grandTotal = 0;
+        document.querySelectorAll('.t-total').forEach(td => {
+            grandTotal += parseFloat(td.innerText.replace(/,/g, '')) || 0;
+        });
+        const formattedTotal = grandTotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        document.getElementById('grandTotalText').innerText = formattedTotal;
+        document.getElementById('budget').value = formattedTotal + " บาท";
+        
+        // อัปเดตการแสดงผลภาษาไทย
+        document.getElementById('bahtTextDisplay').innerText = ThaiBaht(grandTotal);
+    }
+
+    // ฟังก์ชันแปลงเลขเป็นตัวอักษรไทย (BahtText)
+    function ThaiBaht(num) {
+        if (num === 0 || isNaN(num)) return "ศูนย์บาทถ้วน";
+        const thaiNum = ["ศูนย์", "หนึ่ง", "สอง", "สาม", "สี่", "ห้า", "หก", "เจ็ด", "แปด", "เก้า"];
+        const thaiUnit = ["", "สิบ", "ร้อย", "พัน", "หมื่น", "แสน", "ล้าน"];
+        let [intVal, decVal] = num.toFixed(2).split('.');
+        
+        function convert(val) {
+            let res = "";
+            for (let i = 0; i < val.length; i++) {
+                let n = parseInt(val[i]);
+                let pos = val.length - 1 - i;
+                if (n !== 0) {
+                    if (pos % 6 === 1 && n === 1) res += "สิบ";
+                    else if (pos % 6 === 1 && n === 2) res += "ยี่สิบ";
+                    else if (pos % 6 === 0 && n === 1 && i > 0) res += "เอ็ด";
+                    else res += thaiNum[n] + thaiUnit[pos % 6];
+                }
+                if (pos % 6 === 0 && pos > 0) res += "ล้าน";
+            }
+            return res;
+        }
+
+        let result = convert(intVal) + "บาท";
+        if (parseInt(decVal) === 0) result += "ถ้วน";
+        else result += convert(decVal) + "สตางค์";
+        return result;
+    }
+
+    async function generateWord() {
+        try {
+            const dateVal = document.getElementById('dateInput').value;
+            if (!dateVal) { alert("กรุณาเลือกวันที่"); return; }
+
+            const response = await fetch('./templated.docx'); 
+            if (!response.ok) throw new Error("ไม่พบไฟล์ templated.docx");
+            
+            const content = await response.arrayBuffer();
+            const zip = new window.PizZip(content);
+            const doc = new window.docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
+
+            const d = new Date(dateVal);
+            const months = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+            
+// สร้างรูปแบบ dd/mm/yyyy (พ.ศ. 4 หลัก)
+            const dd = String(d.getDate()).padStart(2, '0');
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const yyyy = d.getFullYear() + 543; 
+            const formattedDateTime = `${dd}/${mm}/${yyyy}`;
+
+            const mission = document.querySelector('input[name="mission"]:checked').value;
+            const requestType = document.querySelector('input[name="requestType"]:checked').value;
+            const standardType = document.querySelector('input[name="standardType"]:checked').value;
+
+            const itemsData = [];
+            document.querySelectorAll('#itemTableBody tr').forEach(tr => {
+                itemsData.push({
+                    id: tr.cells[0].innerText,
+                    name: tr.querySelector('.t-name').value,
+                    median_p: tr.querySelector('.t-m-price').value,
+                    median_u: tr.querySelector('.t-m-unit').value,
+                    qty: tr.querySelector('.t-qty').value,
+                    unit: tr.querySelector('.t-unit').value,
+                    price: tr.querySelector('.t-price').value,
+                    total: tr.querySelector('.t-total').innerText,
+                    reason: tr.querySelector('.t-reason').value
+                });
+            });
+
+            let rawTotal = parseFloat(document.getElementById('grandTotalText').innerText.replace(/,/g, '')) || 0;
+
+            const data = {
+                day_now: d.getDate(),
+                month_now: months[d.getMonth()],
+                year_now: d.getFullYear() + 543,
+                
+                // เพิ่ม Tag {dateTime} สำหรับใช้งานใน Word
+                dateTime: formattedDateTime, 
+
+                requesterName: document.getElementById('requesterName').value,
+                department: document.getElementById('department').value,
+                yutt: document.getElementById('yutt').value,
+                objective: document.getElementById('objective').value,
+                p1: mission === "p1" ? "✓" : "",
+                p2: mission === "p2" ? "✓" : "",
+                p3: mission === "p3" ? "✓" : "",
+                p4: mission === "p4" ? "✓" : "",
+                b: requestType === "buy" ? "✓" : "",
+                m: requestType === "hire" ? "✓" : "",
+                items: itemsData,
+                grand_total: document.getElementById('grandTotalText').innerText,
+                baht: ThaiBaht(rawTotal),
+                for: document.getElementById('forProject').value,
+                activity: document.getElementById('activity').value,
+                moneyfrom: document.getElementById('moneyfrom').value,
+                noProject: document.getElementById('noProject').value,
+                budget: document.getElementById('budget').value,
+                day: document.getElementById('useDay').value,
+                c: standardType === "low" ? "✓" : "",
+                d: standardType === "high" ? "✓" : "",
+                why: document.getElementById('whyReason').value
+            };
+
+            doc.render(data);
+            const out = doc.getZip().generate({ type: "blob", mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+            saveAs(out, "บันทึกข้อความ_จัดซื้อจัดจ้าง.docx");
+
+        } catch (error) {
+            alert("เกิดข้อผิดพลาด: " + error.message);
+        }
+    }
+
+    window.onload = addRow;
+</script>
+</body>
+</html>
